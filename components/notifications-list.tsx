@@ -280,3 +280,5 @@ export function NotificationsList({ notifications: initialNotifications }: Notif
     </div>
   )
 }
+
+export default NotificationsList

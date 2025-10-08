@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
-import { NotificationsList } from "@/components/notifications-list"
+import NotificationsList from "@/components/notifications-list"
 
 export default async function NotificationsPage() {
   const supabase = await createClient()
