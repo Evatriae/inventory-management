@@ -91,16 +91,20 @@ export function ItemCard({ item, userId }: ItemCardProps) {
   const handleRequest = async (requestType: "borrow" | "reserve") => {
     setIsLoading(true)
     try {
-      // Validate requested amount for borrow requests
+      // Validate requested amount for both borrow and reserve requests
       if (requestType === "borrow" && (requestedAmount < 1 || requestedAmount > item.available_amount)) {
         throw new Error(`Invalid amount. Please enter a value between 1 and ${item.available_amount}`)
+      }
+      
+      if (requestType === "reserve" && (requestedAmount < 1 || requestedAmount > item.amount)) {
+        throw new Error(`Invalid amount. Please enter a value between 1 and ${item.amount}`)
       }
 
       const { error } = await supabase.from("borrow_requests").insert({
         item_id: item.id,
         user_id: userId,
         request_type: requestType,
-        requested_amount: requestType === "borrow" ? requestedAmount : 1,
+        requested_amount: requestedAmount,
         notes: notes || null,
       })
 
@@ -161,27 +165,30 @@ export function ItemCard({ item, userId }: ItemCardProps) {
             <DialogTitle>{item.status === "available" ? "Request to Borrow" : "Reserve Item"}</DialogTitle>
             <DialogDescription>
               {item.status === "available"
-                ? "Submit a request to borrow this item. Staff will review and approve your request."
-                : "This item is currently borrowed. You can reserve it to be notified when it becomes available."}
+                ? "Submit a request to borrow this item. Specify the amount you need and staff will review your request."
+                : "This item is currently borrowed. You can reserve a specific amount to be notified when it becomes available."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {item.status === "available" && (
-              <div className="space-y-2">
-                <Label htmlFor="amount">Amount to Request</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  min={1}
-                  max={item.available_amount}
-                  value={requestedAmount}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRequestedAmount(parseInt(e.target.value) || 1)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Available: {item.available_amount} / {item.amount}
-                </p>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="amount">
+                {item.status === "available" ? "Amount to Request" : "Amount to Reserve"}
+              </Label>
+              <Input
+                id="amount"
+                type="number"
+                min={1}
+                max={item.status === "available" ? item.available_amount : item.amount}
+                value={requestedAmount}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRequestedAmount(parseInt(e.target.value) || 1)}
+              />
+              <p className="text-sm text-muted-foreground">
+                {item.status === "available" 
+                  ? `Available: ${item.available_amount} / ${item.amount}`
+                  : `Total amount: ${item.amount} (currently borrowed: ${item.amount - item.available_amount})`
+                }
+              </p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="notes">Notes (optional)</Label>
               <Textarea
@@ -201,7 +208,9 @@ export function ItemCard({ item, userId }: ItemCardProps) {
               onClick={() => handleRequest(item.status === "available" ? "borrow" : "reserve")}
               disabled={
                 isLoading || 
-                (item.status === "available" && (requestedAmount < 1 || requestedAmount > item.available_amount))
+                requestedAmount < 1 ||
+                (item.status === "available" && requestedAmount > item.available_amount) ||
+                (item.status === "borrowed" && requestedAmount > item.amount)
               }
             >
               {isLoading ? "Submitting..." : "Submit Request"}

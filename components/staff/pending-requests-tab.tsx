@@ -203,26 +203,37 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
                 </div>
               )}
               <div className="flex gap-2">
-                <Button
-                  onClick={() => {
-                    setSelectedRequest(request)
-                    setIsApproveDialogOpen(true)
-                  }}
-                  className="flex-1"
-                  disabled={isLoading || request.requested_amount > request.items.available_amount}
-                >
-                  {request.requested_amount > request.items.available_amount 
-                    ? "Insufficient Quantity" 
-                    : "Approve & Record Pickup"
-                  }
-                </Button>
+                {request.request_type === "reserve" ? (
+                  <Button
+                    onClick={() => handleReject(request.id)} // For reserves, we can only approve by rejecting or letting the system auto-handle
+                    variant="outline"
+                    className="flex-1"
+                    disabled={isLoading}
+                  >
+                    Remove from Queue
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      setSelectedRequest(request)
+                      setIsApproveDialogOpen(true)
+                    }}
+                    className="flex-1"
+                    disabled={isLoading || request.requested_amount > request.items.available_amount}
+                  >
+                    {request.requested_amount > request.items.available_amount 
+                      ? "Insufficient Quantity" 
+                      : "Approve & Record Pickup"
+                    }
+                  </Button>
+                )}
                 <Button
                   onClick={() => handleReject(request.id)}
                   variant="outline"
                   className="flex-1"
                   disabled={isLoading}
                 >
-                  Reject
+                  {request.request_type === "reserve" ? "Remove" : "Reject"}
                 </Button>
               </div>
             </CardContent>
