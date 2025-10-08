@@ -27,6 +27,8 @@ interface Item {
   category: string | null
   image_url: string | null
   status: string
+  amount: number
+  available_amount: number
   current_borrower_id: string | null
 }
 
@@ -44,6 +46,7 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
     description: "",
     category: "",
     image_url: "",
+    amount: 1,
   })
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
@@ -85,13 +88,15 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
         description: formData.description || null,
         category: formData.category || null,
         image_url: formData.image_url || null,
+        amount: formData.amount,
+        available_amount: formData.amount,
         status: "available",
       })
 
       if (error) throw error
 
       setIsAddDialogOpen(false)
-      setFormData({ name: "", description: "", category: "", image_url: "" })
+      setFormData({ name: "", description: "", category: "", image_url: "", amount: 1 })
       router.refresh()
     } catch (error) {
       console.error("Error adding item:", error)
@@ -105,6 +110,10 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
 
     setIsLoading(true)
     try {
+      // Calculate the new available_amount based on the amount change
+      const amountDifference = formData.amount - selectedItem.amount
+      const newAvailableAmount = selectedItem.available_amount + amountDifference
+
       const { error } = await supabase
         .from("items")
         .update({
@@ -112,6 +121,8 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
           description: formData.description || null,
           category: formData.category || null,
           image_url: formData.image_url || null,
+          amount: formData.amount,
+          available_amount: Math.max(0, newAvailableAmount), // Ensure it doesn't go negative
         })
         .eq("id", selectedItem.id)
 
@@ -119,7 +130,7 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
 
       setIsEditDialogOpen(false)
       setSelectedItem(null)
-      setFormData({ name: "", description: "", category: "", image_url: "" })
+      setFormData({ name: "", description: "", category: "", image_url: "", amount: 1 })
       router.refresh()
     } catch (error) {
       console.error("Error updating item:", error)
@@ -135,6 +146,7 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
       description: item.description || "",
       category: item.category || "",
       image_url: item.image_url || "",
+      amount: item.amount,
     })
     setIsEditDialogOpen(true)
   }
@@ -200,6 +212,11 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
                     {getStatusBadge(item.status)}
                   </div>
                   {item.category && <p className="text-xs text-muted-foreground mb-2">{item.category}</p>}
+                  <div className="mb-2">
+                    <p className="text-sm font-medium">
+                      Available: {item.available_amount} / {item.amount}
+                    </p>
+                  </div>
                   {item.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{item.description}</p>
                   )}
@@ -248,6 +265,17 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
                 id="category"
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="amount">Total Amount *</Label>
+              <Input
+                id="amount"
+                type="number"
+                min={1}
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: parseInt(e.target.value) || 1 })}
+                required
               />
             </div>
             <div className="space-y-2">
@@ -303,6 +331,22 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-amount">Total Amount *</Label>
+              <Input
+                id="edit-amount"
+                type="number"
+                min={1}
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: parseInt(e.target.value) || 1 })}
+                required
+              />
+              {selectedItem && (
+                <p className="text-sm text-muted-foreground">
+                  Current available: {selectedItem.available_amount} / {selectedItem.amount}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-description">Description</Label>

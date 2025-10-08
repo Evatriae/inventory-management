@@ -36,7 +36,10 @@ export default async function StaffDashboardPage() {
         description,
         category,
         image_url,
-        status
+        status,
+        amount,
+        available_amount,
+        current_borrower_id
       ),
       profiles!borrow_requests_user_id_fkey (
         id,
@@ -58,7 +61,11 @@ export default async function StaffDashboardPage() {
         name,
         description,
         category,
-        image_url
+        image_url,
+        amount,
+        available_amount,
+        current_borrower_id,
+        status
       ),
       profiles!borrow_requests_user_id_fkey (
         id,
@@ -83,7 +90,9 @@ export default async function StaffDashboardPage() {
         description,
         category,
         image_url,
-        status
+        status,
+        amount,
+        available_amount
       ),
       profiles!borrow_requests_user_id_fkey (
         id,

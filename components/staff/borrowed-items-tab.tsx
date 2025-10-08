@@ -23,6 +23,7 @@ interface BorrowedItem {
   status: string
   borrowed_at: string
   expected_return_at: string
+  requested_amount: number
   user_id: string
   item_id: string
   items: {
@@ -31,6 +32,10 @@ interface BorrowedItem {
     description: string | null
     category: string | null
     image_url: string | null
+    amount: number
+    available_amount: number
+    current_borrower_id: string | null
+    status: string
   }
   profiles: {
     id: string
@@ -71,6 +76,7 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
     try {
       const now = new Date().toISOString()
 
+      // Update the request status
       const { error: requestError } = await supabase
         .from("borrow_requests")
         .update({
@@ -81,12 +87,23 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
 
       if (requestError) throw requestError
 
+      // Update the item's available amount and status
+      const newAvailableAmount = selectedItem.items.available_amount + selectedItem.requested_amount
+      const newStatus = newAvailableAmount > 0 ? "available" : "borrowed"
+
+      const updateData: any = {
+        available_amount: newAvailableAmount,
+        status: newStatus,
+      }
+
+      // Clear current_borrower_id if item becomes available
+      if (newStatus === "available") {
+        updateData.current_borrower_id = null
+      }
+
       const { error: itemError } = await supabase
         .from("items")
-        .update({
-          status: "available",
-          current_borrower_id: null,
-        })
+        .update(updateData)
         .eq("id", selectedItem.item_id)
 
       if (itemError) throw itemError
@@ -149,6 +166,9 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
                         <Calendar className="h-3 w-3" />
                         Expected return {formatDate(item.expected_return_at)}
                       </p>
+                      <p className="font-medium text-foreground">
+                        Amount borrowed: {item.requested_amount}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -175,7 +195,12 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
           <DialogHeader>
             <DialogTitle>Confirm Item Return</DialogTitle>
             <DialogDescription>
-              Mark this item as returned. The item will become available for other users to borrow.
+              Mark this item as returned. {selectedItem && (
+                <>
+                  Returning {selectedItem.requested_amount} unit(s) of "{selectedItem.items.name}" from {selectedItem.profiles.full_name || selectedItem.profiles.email}.
+                  The item will become available for other users to borrow.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

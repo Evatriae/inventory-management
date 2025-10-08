@@ -10,6 +10,7 @@ interface Request {
   request_type: string
   status: string
   requested_at: string
+  requested_amount: number
   approved_at: string | null
   borrowed_at: string | null
   expected_return_at: string | null
@@ -22,6 +23,8 @@ interface Request {
     category: string | null
     image_url: string | null
     status: string
+    amount: number
+    available_amount: number
   }
   profiles: {
     id: string
@@ -112,6 +115,9 @@ export function AllRequestsTab({ requests }: AllRequestsTabProps) {
                     {request.profiles.full_name || request.profiles.email}
                   </p>
                   <p className="capitalize">{request.request_type} Request</p>
+                  <p className="font-medium text-foreground">
+                    Amount: {request.requested_amount}
+                  </p>
                 </div>
               </div>
             </div>

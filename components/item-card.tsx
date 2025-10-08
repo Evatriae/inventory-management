@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 interface Item {
@@ -27,6 +28,8 @@ interface Item {
   image_url: string | null
   status: string
   current_borrower_id: string | null
+  amount: number
+  available_amount: number
 }
 
 interface ItemCardProps {
@@ -37,6 +40,7 @@ interface ItemCardProps {
 export function ItemCard({ item, userId }: ItemCardProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [notes, setNotes] = useState("")
+  const [requestedAmount, setRequestedAmount] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -45,24 +49,39 @@ export function ItemCard({ item, userId }: ItemCardProps) {
     switch (item.status) {
       case "available":
         return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Available
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <CheckCircle2 className="h-3 w-3 mr-1" />
+              Available
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {item.available_amount}/{item.amount}
+            </span>
+          </div>
         )
       case "borrowed":
         return (
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-            <XCircle className="h-3 w-3 mr-1" />
-            Borrowed
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+              <XCircle className="h-3 w-3 mr-1" />
+              Borrowed
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {item.available_amount}/{item.amount}
+            </span>
+          </div>
         )
       case "reserved":
         return (
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-            <Clock className="h-3 w-3 mr-1" />
-            Reserved
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+              <Clock className="h-3 w-3 mr-1" />
+              Reserved
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {item.available_amount}/{item.amount}
+            </span>
+          </div>
         )
       default:
         return null
@@ -72,10 +91,16 @@ export function ItemCard({ item, userId }: ItemCardProps) {
   const handleRequest = async (requestType: "borrow" | "reserve") => {
     setIsLoading(true)
     try {
+      // Validate requested amount for borrow requests
+      if (requestType === "borrow" && (requestedAmount < 1 || requestedAmount > item.available_amount)) {
+        throw new Error(`Invalid amount. Please enter a value between 1 and ${item.available_amount}`)
+      }
+
       const { error } = await supabase.from("borrow_requests").insert({
         item_id: item.id,
         user_id: userId,
         request_type: requestType,
+        requested_amount: requestType === "borrow" ? requestedAmount : 1,
         notes: notes || null,
       })
 
@@ -83,6 +108,7 @@ export function ItemCard({ item, userId }: ItemCardProps) {
 
       setIsDialogOpen(false)
       setNotes("")
+      setRequestedAmount(1)
       router.refresh()
     } catch (error) {
       console.error("Error creating request:", error)
@@ -140,6 +166,22 @@ export function ItemCard({ item, userId }: ItemCardProps) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {item.status === "available" && (
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount to Request</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  min={1}
+                  max={item.available_amount}
+                  value={requestedAmount}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRequestedAmount(parseInt(e.target.value) || 1)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Available: {item.available_amount} / {item.amount}
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="notes">Notes (optional)</Label>
               <Textarea
@@ -157,7 +199,10 @@ export function ItemCard({ item, userId }: ItemCardProps) {
             </Button>
             <Button
               onClick={() => handleRequest(item.status === "available" ? "borrow" : "reserve")}
-              disabled={isLoading}
+              disabled={
+                isLoading || 
+                (item.status === "available" && (requestedAmount < 1 || requestedAmount > item.available_amount))
+              }
             >
               {isLoading ? "Submitting..." : "Submit Request"}
             </Button>

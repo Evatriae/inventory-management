@@ -10,6 +10,7 @@ interface Request {
   request_type: string
   status: string
   requested_at: string
+  requested_amount: number
   approved_at: string | null
   borrowed_at: string | null
   expected_return_at: string | null
@@ -21,6 +22,8 @@ interface Request {
     description: string | null
     category: string | null
     image_url: string | null
+    amount: number
+    available_amount: number
   }
 }
 
@@ -101,6 +104,7 @@ export function MyRequestsList({ requests }: MyRequestsListProps) {
                   {getStatusBadge(request.status)}
                 </div>
                 <p className="text-sm text-muted-foreground capitalize">{request.request_type} Request</p>
+                <p className="text-sm font-medium">Amount: {request.requested_amount}</p>
               </div>
             </div>
           </CardHeader>

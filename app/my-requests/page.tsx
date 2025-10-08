@@ -26,7 +26,9 @@ export default async function MyRequestsPage() {
         name,
         description,
         category,
-        image_url
+        image_url,
+        amount,
+        available_amount
       )
     `,
     )

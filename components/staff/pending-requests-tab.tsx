@@ -24,6 +24,7 @@ interface Request {
   request_type: string
   status: string
   requested_at: string
+  requested_amount: number
   notes: string | null
   items: {
     id: string
@@ -32,6 +33,9 @@ interface Request {
     category: string | null
     image_url: string | null
     status: string
+    amount: number
+    available_amount: number
+    current_borrower_id: string | null
   }
   profiles: {
     id: string
@@ -70,6 +74,12 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
     try {
       const now = new Date().toISOString()
 
+      // Check if there's enough available amount
+      if (selectedRequest.requested_amount > selectedRequest.items.available_amount) {
+        alert("Not enough available quantity to fulfill this request")
+        return
+      }
+
       const { error: requestError } = await supabase
         .from("borrow_requests")
         .update({
@@ -83,12 +93,23 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
 
       if (requestError) throw requestError
 
+      // Update item's available amount
+      const newAvailableAmount = selectedRequest.items.available_amount - selectedRequest.requested_amount
+      const newStatus = newAvailableAmount > 0 ? "available" : "borrowed"
+
+      const updateData: any = {
+        available_amount: newAvailableAmount,
+        status: newStatus,
+      }
+
+      // Only set current_borrower_id if the item becomes fully borrowed
+      if (newAvailableAmount === 0) {
+        updateData.current_borrower_id = selectedRequest.profiles.id
+      }
+
       const { error: itemError } = await supabase
         .from("items")
-        .update({
-          status: "borrowed",
-          current_borrower_id: selectedRequest.profiles.id,
-        })
+        .update(updateData)
         .eq("id", selectedRequest.items.id)
 
       if (itemError) throw itemError
@@ -164,6 +185,12 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
                         {request.items.category}
                       </p>
                     )}
+                    <p className="font-medium text-foreground">
+                      Requested amount: {request.requested_amount}
+                    </p>
+                    <p className="text-xs">
+                      Available: {request.items.available_amount} / {request.items.amount}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -182,9 +209,12 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
                     setIsApproveDialogOpen(true)
                   }}
                   className="flex-1"
-                  disabled={isLoading}
+                  disabled={isLoading || request.requested_amount > request.items.available_amount}
                 >
-                  Approve & Record Pickup
+                  {request.requested_amount > request.items.available_amount 
+                    ? "Insufficient Quantity" 
+                    : "Approve & Record Pickup"
+                  }
                 </Button>
                 <Button
                   onClick={() => handleReject(request.id)}
@@ -204,7 +234,18 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Approve Request & Record Pickup</DialogTitle>
-            <DialogDescription>The user is picking up the item now. Set the expected return date.</DialogDescription>
+            <DialogDescription>
+              The user is picking up the item now. Set the expected return date.
+              {selectedRequest && (
+                <>
+                  <br />
+                  <span className="font-medium">
+                    Approving {selectedRequest.requested_amount} unit(s) of "{selectedRequest.items.name}" 
+                    for {selectedRequest.profiles.full_name || selectedRequest.profiles.email}
+                  </span>
+                </>
+              )}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
