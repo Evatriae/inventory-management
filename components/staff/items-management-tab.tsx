@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { Plus, Pencil, CheckCircle2, XCircle, Clock } from "lucide-react"
+import { Plus, Pencil, Trash2, CheckCircle2, XCircle, Clock } from "lucide-react"
 import Image from "next/image"
 import {
   Dialog,
@@ -37,6 +37,7 @@ interface ItemsManagementTabProps {
 export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<Item | null>(null)
   const [formData, setFormData] = useState({
     name: "",
@@ -138,6 +139,33 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
     setIsEditDialogOpen(true)
   }
 
+  const openDeleteDialog = (item: Item) => {
+    setSelectedItem(item)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleDeleteItem = async () => {
+    if (!selectedItem) return
+
+    setIsLoading(true)
+    try {
+      const { error } = await supabase
+        .from("items")
+        .delete()
+        .eq("id", selectedItem.id)
+
+      if (error) throw error
+
+      setIsDeleteDialogOpen(false)
+      setSelectedItem(null)
+      router.refresh()
+    } catch (error) {
+      console.error("Error deleting item:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <>
       <div className="space-y-4">
@@ -175,10 +203,22 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
                   {item.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{item.description}</p>
                   )}
-                  <Button onClick={() => openEditDialog(item)} variant="outline" size="sm" className="w-full">
-                    <Pencil className="h-3 w-3 mr-2" />
-                    Edit Item
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button onClick={() => openEditDialog(item)} variant="outline" size="sm" className="flex-1">
+                      <Pencil className="h-3 w-3 mr-2" />
+                      Edit
+                    </Button>
+                    <Button 
+                      onClick={() => openDeleteDialog(item)} 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      disabled={item.status === 'borrowed'}
+                    >
+                      <Trash2 className="h-3 w-3 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -289,6 +329,29 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
             </Button>
             <Button onClick={handleEditItem} disabled={isLoading || !formData.name}>
               {isLoading ? "Updating..." : "Update Item"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Item</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{selectedItem?.name}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleDeleteItem} 
+              disabled={isLoading}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isLoading ? "Deleting..." : "Delete Item"}
             </Button>
           </DialogFooter>
         </DialogContent>
