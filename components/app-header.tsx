@@ -14,6 +14,7 @@ import { Package, User, LogOut, LayoutDashboard } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
+import { Notifications } from "@/components/notifications"
 
 interface AppHeaderProps {
   user: SupabaseUser
@@ -51,6 +52,8 @@ export function AppHeader({ user, profile }: AppHeaderProps) {
             </Button>
           )}
 
+          <Notifications userId={user.id} />
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -70,6 +73,9 @@ export function AppHeader({ user, profile }: AppHeaderProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/my-requests">My Requests</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/notifications">Notifications</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
