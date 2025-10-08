@@ -107,26 +107,28 @@ export default async function StaffDashboardPage() {
         </div>
 
         <Tabs defaultValue="pending" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="pending">
-              Pending Requests
-              {pendingRequests && pendingRequests.length > 0 && (
-                <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
-                  {pendingRequests.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="borrowed">
-              Borrowed Items
-              {borrowedItems && borrowedItems.length > 0 && (
-                <span className="ml-2 bg-blue-500 text-white text-xs rounded-full px-2 py-0.5">
-                  {borrowedItems.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="all">All Requests</TabsTrigger>
-            <TabsTrigger value="items">Items Management</TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto">
+            <TabsList className="inline-flex w-max min-w-full">
+              <TabsTrigger value="pending" className="whitespace-nowrap">
+                Pending Requests
+                {pendingRequests && pendingRequests.length > 0 && (
+                  <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                    {pendingRequests.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="borrowed" className="whitespace-nowrap">
+                Borrowed Items
+                {borrowedItems && borrowedItems.length > 0 && (
+                  <span className="ml-2 bg-blue-500 text-white text-xs rounded-full px-2 py-0.5">
+                    {borrowedItems.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="all" className="whitespace-nowrap">All Requests</TabsTrigger>
+              <TabsTrigger value="items" className="whitespace-nowrap">Items Management</TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="pending">
             <PendingRequestsTab requests={pendingRequests || []} staffId={user.id} />
