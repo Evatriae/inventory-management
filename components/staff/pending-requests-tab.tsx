@@ -4,9 +4,13 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { Calendar, User, Package } from "lucide-react"
+import { Calendar, User, Package, CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 import Image from "next/image"
 import {
   Dialog,
@@ -52,7 +56,8 @@ interface PendingRequestsTabProps {
 export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProps) {
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null)
   const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false)
-  const [expectedReturnDate, setExpectedReturnDate] = useState("")
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [selectedTime, setSelectedTime] = useState("17:00") // Default to 5 PM
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
@@ -68,11 +73,16 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
   }
 
   const handleApprove = async () => {
-    if (!selectedRequest || !expectedReturnDate) return
+    if (!selectedRequest || !selectedDate) return
 
     setIsLoading(true)
     try {
       const now = new Date().toISOString()
+
+      // Combine selected date and time
+      const [hours, minutes] = selectedTime.split(':')
+      const returnDateTime = new Date(selectedDate)
+      returnDateTime.setHours(parseInt(hours), parseInt(minutes))
 
       // Check if there's enough available amount
       if (selectedRequest.requested_amount > selectedRequest.items.available_amount) {
@@ -87,7 +97,7 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
           approved_at: now,
           approved_by: staffId,
           borrowed_at: now,
-          expected_return_at: new Date(expectedReturnDate).toISOString(),
+          expected_return_at: returnDateTime.toISOString(),
         })
         .eq("id", selectedRequest.id)
 
@@ -116,7 +126,8 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
 
       setIsApproveDialogOpen(false)
       setSelectedRequest(null)
-      setExpectedReturnDate("")
+      setSelectedDate(undefined)
+      setSelectedTime("17:00")
       router.refresh()
     } catch (error) {
       console.error("Error approving request:", error)
@@ -216,6 +227,8 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
                   <Button
                     onClick={() => {
                       setSelectedRequest(request)
+                      setSelectedDate(undefined)
+                      setSelectedTime("17:00")
                       setIsApproveDialogOpen(true)
                     }}
                     className="flex-1"
@@ -260,21 +273,55 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="return-date">Expected Return Date</Label>
+              <Label>Expected Return Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={(date) => date < new Date() || date < new Date("1900-01-01")}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="return-time">Expected Return Time</Label>
               <Input
-                id="return-date"
-                type="datetime-local"
-                value={expectedReturnDate}
-                onChange={(e) => setExpectedReturnDate(e.target.value)}
+                id="return-time"
+                type="time"
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
                 required
               />
             </div>
+            {selectedDate && (
+              <div className="p-3 bg-slate-50 rounded-md">
+                <p className="text-sm font-medium">Selected Return Date & Time:</p>
+                <p className="text-sm text-muted-foreground">
+                  {format(selectedDate, "PPPP")} at {selectedTime}
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsApproveDialogOpen(false)} disabled={isLoading}>
               Cancel
             </Button>
-            <Button onClick={handleApprove} disabled={isLoading || !expectedReturnDate}>
+            <Button onClick={handleApprove} disabled={isLoading || !selectedDate}>
               {isLoading ? "Processing..." : "Approve & Record"}
             </Button>
           </DialogFooter>
