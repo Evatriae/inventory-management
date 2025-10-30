@@ -122,6 +122,11 @@ export function AllRequestsTab({ requests }: AllRequestsTabProps) {
                         Originally Reserved
                       </span>
                     )}
+                    {request.original_request_type === 'borrow' && request.request_type === 'reserve' && (
+                      <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                        Converted from Borrow
+                      </span>
+                    )}
                   </div>
                   <p className="font-medium text-foreground">
                     Amount: {request.requested_amount}

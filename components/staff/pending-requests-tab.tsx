@@ -73,6 +73,29 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
     })
   }
 
+  const handleConvertToReservation = async (requestId: string, itemName: string) => {
+    setIsLoading(true)
+    try {
+      const { error } = await supabase
+        .from("borrow_requests")
+        .update({
+          request_type: "reserve",
+          original_request_type: "borrow"
+        })
+        .eq("id", requestId)
+
+      if (error) throw error
+
+      alert(`Successfully converted borrow request for "${itemName}" to a reservation. The user will be notified when the item becomes available.`)
+      router.refresh()
+    } catch (error) {
+      console.error("Error converting to reservation:", error)
+      alert("Failed to convert request to reservation")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleApprove = async () => {
     if (!selectedRequest || !selectedDate) return
 
@@ -187,6 +210,11 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
                           Originally Reserved
                         </Badge>
                       )}
+                      {request.original_request_type === 'borrow' && request.request_type === 'reserve' && (
+                        <Badge variant="destructive" className="text-xs">
+                          Converted from Borrow
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-1 text-sm text-muted-foreground">
@@ -232,21 +260,30 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
                     Remove from Queue
                   </Button>
                 ) : (
-                  <Button
-                    onClick={() => {
-                      setSelectedRequest(request)
-                      setSelectedDate(undefined)
-                      setSelectedTime("17:00")
-                      setIsApproveDialogOpen(true)
-                    }}
-                    className="flex-1"
-                    disabled={isLoading || request.requested_amount > request.items.available_amount}
-                  >
-                    {request.requested_amount > request.items.available_amount 
-                      ? "Insufficient Quantity" 
-                      : "Approve & Record Pickup"
-                    }
-                  </Button>
+                  <>
+                    {request.requested_amount > request.items.available_amount ? (
+                      <Button
+                        onClick={() => handleConvertToReservation(request.id, request.items.name)}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        disabled={isLoading}
+                      >
+                        Convert to Reservation
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => {
+                          setSelectedRequest(request)
+                          setSelectedDate(undefined)
+                          setSelectedTime("17:00")
+                          setIsApproveDialogOpen(true)
+                        }}
+                        className="flex-1"
+                        disabled={isLoading}
+                      >
+                        Approve & Record Pickup
+                      </Button>
+                    )}
+                  </>
                 )}
                 <Button
                   onClick={() => handleReject(request.id)}
