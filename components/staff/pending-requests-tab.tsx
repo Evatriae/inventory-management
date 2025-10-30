@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input"
 interface Request {
   id: string
   request_type: string
+  original_request_type: string | null
   status: string
   requested_at: string
   requested_amount: number
@@ -177,9 +178,16 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <h3 className="font-semibold text-lg">{request.items.name}</h3>
-                    <Badge variant="outline" className="capitalize">
-                      {request.request_type}
-                    </Badge>
+                    <div className="flex gap-2">
+                      <Badge variant="outline" className="capitalize">
+                        {request.request_type}
+                      </Badge>
+                      {request.original_request_type === 'reserve' && (
+                        <Badge variant="secondary" className="text-xs">
+                          Originally Reserved
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-1 text-sm text-muted-foreground">
                     <p className="flex items-center gap-1">

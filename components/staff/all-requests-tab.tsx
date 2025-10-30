@@ -8,6 +8,7 @@ import Image from "next/image"
 interface Request {
   id: string
   request_type: string
+  original_request_type: string | null
   status: string
   requested_at: string
   requested_amount: number
@@ -114,7 +115,14 @@ export function AllRequestsTab({ requests }: AllRequestsTabProps) {
                     <User className="h-3 w-3" />
                     {request.profiles.full_name || request.profiles.email}
                   </p>
-                  <p className="capitalize">{request.request_type} Request</p>
+                  <div className="flex items-center gap-2">
+                    <p className="capitalize">{request.request_type} Request</p>
+                    {request.original_request_type === 'reserve' && (
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                        Originally Reserved
+                      </span>
+                    )}
+                  </div>
                   <p className="font-medium text-foreground">
                     Amount: {request.requested_amount}
                   </p>

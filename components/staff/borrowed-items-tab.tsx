@@ -85,7 +85,11 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
         })
         .eq("id", selectedItem.id)
 
-      if (requestError) throw requestError
+      if (requestError) {
+        console.error("Error updating request:", requestError)
+        alert(`Error updating request: ${requestError.message}`)
+        return
+      }
 
       // Update the item's available amount and status
       const newAvailableAmount = selectedItem.items.available_amount + selectedItem.requested_amount
@@ -106,13 +110,19 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
         .update(updateData)
         .eq("id", selectedItem.item_id)
 
-      if (itemError) throw itemError
+      if (itemError) {
+        console.error("Error updating item:", itemError)
+        alert(`Error updating item: ${itemError.message}`)
+        return
+      }
 
+      alert(`Successfully processed return for "${selectedItem.items.name}"`)
       setIsReturnDialogOpen(false)
       setSelectedItem(null)
       router.refresh()
     } catch (error) {
       console.error("Error processing return:", error)
+      alert(`Unexpected error processing return: ${error}`)
     } finally {
       setIsLoading(false)
     }

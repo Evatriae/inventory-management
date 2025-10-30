@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import { Plus, Pencil, Trash2, CheckCircle2, XCircle, Clock } from "lucide-react"
+import { Plus, Pencil, Trash2, CheckCircle2, XCircle, Clock, Users } from "lucide-react"
 import Image from "next/image"
 import {
   Dialog,
@@ -259,6 +259,36 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
     setIsDeleteDialogOpen(true)
   }
 
+  const handleProcessReservations = async (itemId: string, itemName: string) => {
+    setIsLoading(true)
+    try {
+      // Call the database function to process pending reservations
+      const { data, error } = await supabase
+        .rpc('process_pending_reservations', { item_id_param: itemId })
+
+      if (error) throw error
+
+      const result = data?.[0]
+      if (result) {
+        const { converted_count, notified_count } = result
+        alert(
+          `Processed reservations for "${itemName}":\n` +
+          `• ${converted_count} reservations converted to approval requests\n` +
+          `• ${notified_count} users notified about queue position`
+        )
+      } else {
+        alert(`No pending reservations found for "${itemName}"`)
+      }
+
+      router.refresh()
+    } catch (error) {
+      console.error("Error processing reservations:", error)
+      alert("Failed to process reservations")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleDeleteItem = async () => {
     if (!selectedItem) return
 
@@ -327,6 +357,16 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
                     <Button onClick={() => openEditDialog(item)} variant="outline" size="sm" className="flex-1">
                       <Pencil className="h-3 w-3 mr-2" />
                       Edit
+                    </Button>
+                    <Button 
+                      onClick={() => handleProcessReservations(item.id, item.name)}
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      disabled={isLoading}
+                    >
+                      <Users className="h-3 w-3 mr-2" />
+                      Process Queue
                     </Button>
                     <Button 
                       onClick={() => openDeleteDialog(item)} 
