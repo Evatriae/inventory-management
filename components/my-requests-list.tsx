@@ -8,6 +8,7 @@ import { Clock, CheckCircle2, XCircle, Calendar, Trash2 } from "lucide-react"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { Loading } from "@/components/ui/loading"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -226,7 +227,14 @@ export function MyRequestsList({ requests, onRequestUpdate }: MyRequestsListProp
                               className="bg-red-600 hover:bg-red-700"
                               disabled={isLoading === request.id}
                             >
-                              {isLoading === request.id ? "Cancelling..." : "Cancel Request"}
+                              {isLoading === request.id ? (
+                                <div className="flex items-center gap-2">
+                                  <Loading size="16" color="white" />
+                                  Cancelling...
+                                </div>
+                              ) : (
+                                "Cancel Request"
+                              )}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>

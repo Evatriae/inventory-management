@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import NotificationsList from "@/components/notifications-list"
 import { AppHeader } from "@/components/app-header"
+import { PageLoading } from "@/components/ui/loading"
 
 export default function NotificationsPage() {
   const [user, setUser] = useState<any>(null)
@@ -64,8 +65,8 @@ export default function NotificationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <p>Loading...</p>
+      <div className="min-h-screen bg-slate-50">
+        <PageLoading text="Loading notifications..." />
       </div>
     )
   }

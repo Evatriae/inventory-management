@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { AppHeader } from "@/components/app-header"
 import { MyRequestsList } from "@/components/my-requests-list"
+import { PageLoading } from "@/components/ui/loading"
 
 export default function MyRequestsPage() {
   const [user, setUser] = useState<any>(null)
@@ -78,8 +79,8 @@ export default function MyRequestsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <p>Loading...</p>
+      <div className="min-h-screen bg-slate-50">
+        <PageLoading text="Loading your requests..." />
       </div>
     )
   }

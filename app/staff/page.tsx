@@ -9,6 +9,7 @@ import { PendingRequestsTab } from "@/components/staff/pending-requests-tab"
 import { AllRequestsTab } from "@/components/staff/all-requests-tab"
 import { ItemsManagementTab } from "@/components/staff/items-management-tab"
 import { BorrowedItemsTab } from "@/components/staff/borrowed-items-tab"
+import { PageLoading } from "@/components/ui/loading"
 
 export default function StaffDashboardPage() {
   const [user, setUser] = useState<any>(null)
@@ -135,8 +136,8 @@ export default function StaffDashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <p>Loading staff dashboard...</p>
+      <div className="min-h-screen bg-slate-50">
+        <PageLoading text="Loading staff dashboard..." />
       </div>
     )
   }

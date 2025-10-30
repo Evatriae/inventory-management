@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { ItemGrid } from "@/components/item-grid"
 import { AppHeader } from "@/components/app-header"
+import { PageLoading } from "@/components/ui/loading"
 
 export default function ItemsPage() {
   const [user, setUser] = useState<any>(null)
@@ -55,8 +56,8 @@ export default function ItemsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <p>Loading...</p>
+      <div className="min-h-screen bg-slate-50">
+        <PageLoading text="Loading available items..." />
       </div>
     )
   }
