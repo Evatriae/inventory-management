@@ -11,9 +11,12 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  output: 'export',
-  trailingSlash: true,
-  distDir: 'out',
+  // Only use static export for Capacitor builds
+  ...(process.env.CAPACITOR_BUILD === 'true' && {
+    output: 'export',
+    trailingSlash: true,
+    distDir: 'out',
+  }),
   experimental: {
     missingSuspenseWithCSRBailout: false,
   },
