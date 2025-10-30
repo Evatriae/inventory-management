@@ -45,7 +45,7 @@ export default function LoginPage() {
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-2 text-center">
             <h1 className="text-3xl font-bold text-slate-900">Lend</h1>
-            <p className="text-sm text-slate-600">Inventory Management System</p>
+            <p className="text-sm text-slate-600">A Laboratory Inventory and Equipment Borrowing Management System</p>
           </div>
           <Card>
             <CardHeader>
