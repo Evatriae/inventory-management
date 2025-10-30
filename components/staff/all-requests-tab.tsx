@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -8,15 +8,9 @@ import Image from "next/image"
 interface Request {
   id: string
   request_type: string
-  original_request_type: string | null
   status: string
   requested_at: string
   requested_amount: number
-  approved_at: string | null
-  borrowed_at: string | null
-  expected_return_at: string | null
-  returned_at: string | null
-  notes: string | null
   items: {
     id: string
     name: string
@@ -27,7 +21,7 @@ interface Request {
     amount: number
     available_amount: number
   }
-  profiles: {
+  users: {
     id: string
     full_name: string | null
     email: string
@@ -39,48 +33,12 @@ interface AllRequestsTabProps {
 }
 
 export function AllRequestsTab({ requests }: AllRequestsTabProps) {
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return (
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-            <Clock className="h-3 w-3 mr-1" />
-            Pending
-          </Badge>
-        )
-      case "approved":
-        return (
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Approved
-          </Badge>
-        )
-      case "rejected":
-        return (
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-            <XCircle className="h-3 w-3 mr-1" />
-            Rejected
-          </Badge>
-        )
-      case "completed":
-        return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Completed
-          </Badge>
-        )
-      default:
-        return null
-    }
-  }
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A"
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
+  if (!requests || !Array.isArray(requests)) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">Unable to load requests</p>
+      </div>
+    )
   }
 
   if (requests.length === 0) {
@@ -93,94 +51,40 @@ export function AllRequestsTab({ requests }: AllRequestsTabProps) {
 
   return (
     <div className="space-y-4">
-      {requests.map((request) => (
-        <Card key={request.id}>
-          <CardHeader className="pb-3">
-            <div className="flex items-start gap-4">
-              <div className="relative h-20 w-20 rounded-md overflow-hidden bg-slate-100 flex-shrink-0">
-                <Image
-                  src={request.items.image_url || "/placeholder.svg?height=80&width=80"}
-                  alt={request.items.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <h3 className="font-semibold text-lg">{request.items.name}</h3>
-                  {getStatusBadge(request.status)}
+      {requests.map((request) => {
+        const userName = request.users?.full_name || request.users?.email || 'Unknown User'
+        
+        return (
+          <Card key={request.id}>
+            <CardHeader className="pb-3">
+              <div className="flex items-start gap-4">
+                <div className="relative h-20 w-20 rounded-md overflow-hidden bg-slate-100 flex-shrink-0">
+                  <Image
+                    src={request.items?.image_url || "/placeholder.svg?height=80&width=80"}
+                    alt={request.items?.name || "Item"}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
-                <div className="space-y-1 text-sm text-muted-foreground">
-                  <p className="flex items-center gap-1">
-                    <User className="h-3 w-3" />
-                    {request.profiles.full_name || request.profiles.email}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <p className="capitalize">{request.request_type} Request</p>
-                    {request.original_request_type === 'reserve' && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                        Originally Reserved
-                      </span>
-                    )}
-                    {request.original_request_type === 'borrow' && request.request_type === 'reserve' && (
-                      <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">
-                        Converted from Borrow
-                      </span>
-                    )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="font-semibold text-lg">{request.items?.name || "Unknown Item"}</h3>
+                    <Badge variant="outline">{request.status}</Badge>
                   </div>
-                  <p className="font-medium text-foreground">
-                    Amount: {request.requested_amount}
-                  </p>
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    <p className="flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      {userName}
+                    </p>
+                    <p className="capitalize">{request.request_type} Request</p>
+                    <p>Amount: {request.requested_amount || 0}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  Requested
-                </p>
-                <p className="font-medium">{formatDate(request.requested_at)}</p>
-              </div>
-              {request.borrowed_at && (
-                <div>
-                  <p className="text-muted-foreground flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    Borrowed
-                  </p>
-                  <p className="font-medium">{formatDate(request.borrowed_at)}</p>
-                </div>
-              )}
-              {request.expected_return_at && (
-                <div>
-                  <p className="text-muted-foreground flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    Expected Return
-                  </p>
-                  <p className="font-medium">{formatDate(request.expected_return_at)}</p>
-                </div>
-              )}
-              {request.returned_at && (
-                <div>
-                  <p className="text-muted-foreground flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    Returned
-                  </p>
-                  <p className="font-medium">{formatDate(request.returned_at)}</p>
-                </div>
-              )}
-            </div>
-            {request.notes && (
-              <div className="pt-2 border-t">
-                <p className="text-sm text-muted-foreground">Notes:</p>
-                <p className="text-sm">{request.notes}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+            </CardHeader>
+          </Card>
+        )
+      })}
     </div>
   )
 }

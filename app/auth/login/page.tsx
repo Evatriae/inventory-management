@@ -15,14 +15,63 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
+  const [validationErrors, setValidationErrors] = useState<{
+    email?: string
+    password?: string
+  }>({})
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!email) return "Email is required"
+    if (!emailRegex.test(email)) return "Please enter a valid email address"
+    return ""
+  }
+
+  const validatePassword = (password: string) => {
+    if (!password) return "Password is required"
+    if (password.length < 6) return "Password must be at least 6 characters"
+    return ""
+  }
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value)
+    const emailError = validateEmail(value)
+    setValidationErrors(prev => ({ ...prev, email: emailError }))
+  }
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value)
+    const passwordError = validatePassword(value)
+    setValidationErrors(prev => ({ ...prev, password: passwordError }))
+  }
+
+  const isFormValid = () => {
+    const emailError = validateEmail(email)
+    const passwordError = validatePassword(password)
+    return !emailError && !passwordError
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
+
+    // Validate all fields
+    const emailError = validateEmail(email)
+    const passwordError = validatePassword(password)
+    
+    setValidationErrors({
+      email: emailError,
+      password: passwordError
+    })
+
+    if (!isFormValid()) {
+      return
+    }
+
     const supabase = createClient()
     setIsLoading(true)
-    setError(null)
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
@@ -63,8 +112,12 @@ export default function LoginPage() {
                       placeholder="m@example.com"
                       required
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => handleEmailChange(e.target.value)}
+                      className={validationErrors.email ? "border-red-500 focus:border-red-500" : ""}
                     />
+                    {validationErrors.email && (
+                      <p className="text-sm text-red-500">{validationErrors.email}</p>
+                    )}
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="password">Password</Label>
@@ -73,11 +126,15 @@ export default function LoginPage() {
                       type="password"
                       required
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => handlePasswordChange(e.target.value)}
+                      className={validationErrors.password ? "border-red-500 focus:border-red-500" : ""}
                     />
+                    {validationErrors.password && (
+                      <p className="text-sm text-red-500">{validationErrors.password}</p>
+                    )}
                   </div>
                   {error && <p className="text-sm text-red-500">{error}</p>}
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button type="submit" className="w-full" disabled={isLoading || !isFormValid()}>
                     {isLoading ? "Logging in..." : "Login"}
                   </Button>
                 </div>

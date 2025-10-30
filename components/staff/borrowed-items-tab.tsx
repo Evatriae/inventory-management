@@ -21,12 +21,15 @@ import {
 interface BorrowedItem {
   id: string
   request_type: string
+  original_request_type: string | null
   status: string
-  borrowed_at: string
-  expected_return_at: string
+  requested_at: string
   requested_amount: number
-  user_id: string
-  item_id: string
+  approved_at: string | null
+  borrowed_at: string | null
+  expected_return_at: string | null
+  returned_at: string | null
+  notes: string | null
   items: {
     id: string
     name: string
@@ -38,7 +41,7 @@ interface BorrowedItem {
     current_borrower_id: string | null
     status: string
   }
-  profiles: {
+  users: {
     id: string
     full_name: string | null
     email: string
@@ -47,9 +50,10 @@ interface BorrowedItem {
 
 interface BorrowedItemsTabProps {
   borrowedItems: BorrowedItem[]
+  onUpdate: () => Promise<void>
 }
 
-export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
+export function BorrowedItemsTab({ borrowedItems, onUpdate }: BorrowedItemsTabProps) {
   const [selectedItem, setSelectedItem] = useState<BorrowedItem | null>(null)
   const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -57,7 +61,8 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
   const supabase = createClient()
   const { toast } = useToast()
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A"
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -67,7 +72,8 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
     })
   }
 
-  const isOverdue = (expectedReturnDate: string) => {
+  const isOverdue = (expectedReturnDate: string | null) => {
+    if (!expectedReturnDate) return false
     return new Date(expectedReturnDate) < new Date()
   }
 
@@ -114,7 +120,7 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
       const { error: itemError } = await supabase
         .from("items")
         .update(updateData)
-        .eq("id", selectedItem.item_id)
+        .eq("id", selectedItem.items.id)
 
       if (itemError) {
         console.error("Error updating item:", itemError)
@@ -132,7 +138,7 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
       })
       setIsReturnDialogOpen(false)
       setSelectedItem(null)
-      router.refresh()
+      await onUpdate()
     } catch (error) {
       console.error("Error processing return:", error)
       toast({
@@ -183,7 +189,7 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
                     <div className="space-y-1 text-sm text-muted-foreground">
                       <p className="flex items-center gap-1">
                         <User className="h-3 w-3" />
-                        {item.profiles.full_name || item.profiles.email}
+                        {item.users.full_name || item.users.email}
                       </p>
                       <p className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
@@ -224,7 +230,7 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
             <DialogDescription>
               Mark this item as returned. {selectedItem && (
                 <>
-                  Returning {selectedItem.requested_amount} unit(s) of "{selectedItem.items.name}" from {selectedItem.profiles.full_name || selectedItem.profiles.email}.
+                  Returning {selectedItem.requested_amount} unit(s) of "{selectedItem.items.name}" from {selectedItem.users.full_name || selectedItem.users.email}.
                   The item will become available for other users to borrow.
                 </>
               )}

@@ -36,9 +36,10 @@ interface Item {
 
 interface ItemsManagementTabProps {
   items: Item[]
+  onUpdate: () => Promise<void>
 }
 
-export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
+export function ItemsManagementTab({ items, onUpdate }: ItemsManagementTabProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -189,7 +190,7 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
       setFormData({ name: "", description: "", category: "", image_url: "", amount: 1 })
       setImageFile(null)
       setIsCustomCategory(false)
-      router.refresh()
+      await onUpdate()
     } catch (error) {
       console.error("Error adding item:", error)
     } finally {
@@ -246,7 +247,7 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
       setFormData({ name: "", description: "", category: "", image_url: "", amount: 1 })
       setImageFile(null)
       setIsCustomCategory(false)
-      router.refresh()
+      await onUpdate()
     } catch (error) {
       console.error("Error updating item:", error)
     } finally {
@@ -296,7 +297,7 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
         })
       }
 
-      router.refresh()
+      await onUpdate()
     } catch (error) {
       console.error("Error processing reservations:", error)
       toast({
@@ -323,7 +324,7 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
 
       setIsDeleteDialogOpen(false)
       setSelectedItem(null)
-      router.refresh()
+      await onUpdate()
     } catch (error) {
       console.error("Error deleting item:", error)
     } finally {

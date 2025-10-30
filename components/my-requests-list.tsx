@@ -1,9 +1,24 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Clock, CheckCircle2, XCircle, Calendar } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Clock, CheckCircle2, XCircle, Calendar, Trash2 } from "lucide-react"
 import Image from "next/image"
+import { createClient } from "@/lib/supabase/client"
+import { useToast } from "@/hooks/use-toast"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface Request {
   id: string
@@ -29,9 +44,13 @@ interface Request {
 
 interface MyRequestsListProps {
   requests: Request[]
+  onRequestUpdate?: () => void
 }
 
-export function MyRequestsList({ requests }: MyRequestsListProps) {
+export function MyRequestsList({ requests, onRequestUpdate }: MyRequestsListProps) {
+  const [isLoading, setIsLoading] = useState<string | null>(null)
+  const supabase = createClient()
+  const { toast } = useToast()
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
@@ -55,6 +74,13 @@ export function MyRequestsList({ requests }: MyRequestsListProps) {
             Rejected
           </Badge>
         )
+      case "cancelled":
+        return (
+          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+            <XCircle className="h-3 w-3 mr-1" />
+            Cancelled
+          </Badge>
+        )
       case "completed":
         return (
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
@@ -74,6 +100,41 @@ export function MyRequestsList({ requests }: MyRequestsListProps) {
       month: "short",
       day: "numeric",
     })
+  }
+
+  const handleCancelRequest = async (requestId: string, itemName: string) => {
+    setIsLoading(requestId)
+    try {
+      const { error } = await supabase
+        .from("borrow_requests")
+        .update({ status: "cancelled" })
+        .eq("id", requestId)
+
+      if (error) throw error
+
+      toast({
+        title: "Request Cancelled",
+        description: `Your request for "${itemName}" has been cancelled successfully.`,
+      })
+
+      // Call the parent component's refresh function
+      if (onRequestUpdate) {
+        onRequestUpdate()
+      }
+    } catch (error) {
+      console.error("Error cancelling request:", error)
+      toast({
+        title: "Error",
+        description: "Failed to cancel the request. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(null)
+    }
+  }
+
+  const canCancelRequest = (request: Request) => {
+    return request.status === "pending"
   }
 
   if (requests.length === 0) {
@@ -101,7 +162,43 @@ export function MyRequestsList({ requests }: MyRequestsListProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h3 className="font-semibold text-lg">{request.items.name}</h3>
-                  {getStatusBadge(request.status)}
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(request.status)}
+                    {canCancelRequest(request) && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            disabled={isLoading === request.id}
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Cancel
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Cancel Request</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to cancel your request for "{request.items.name}"? 
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Keep Request</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleCancelRequest(request.id, request.items.name)}
+                              className="bg-red-600 hover:bg-red-700"
+                              disabled={isLoading === request.id}
+                            >
+                              {isLoading === request.id ? "Cancelling..." : "Cancel Request"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm text-muted-foreground capitalize">{request.request_type} Request</p>
                 <p className="text-sm font-medium">Amount: {request.requested_amount}</p>

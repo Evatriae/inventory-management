@@ -42,7 +42,7 @@ interface Request {
     available_amount: number
     current_borrower_id: string | null
   }
-  profiles: {
+  users: {
     id: string
     full_name: string | null
     email: string
@@ -52,9 +52,10 @@ interface Request {
 interface PendingRequestsTabProps {
   requests: Request[]
   staffId: string
+  onUpdate: () => Promise<void>
 }
 
-export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProps) {
+export function PendingRequestsTab({ requests, staffId, onUpdate }: PendingRequestsTabProps) {
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null)
   const [isApproveDialogOpen, setIsApproveDialogOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
@@ -87,7 +88,7 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
       if (error) throw error
 
       alert(`Successfully converted borrow request for "${itemName}" to a reservation. The user will be notified when the item becomes available.`)
-      router.refresh()
+      await onUpdate()
     } catch (error) {
       console.error("Error converting to reservation:", error)
       alert("Failed to convert request to reservation")
@@ -138,7 +139,7 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
 
       // Only set current_borrower_id if the item becomes fully borrowed
       if (newAvailableAmount === 0) {
-        updateData.current_borrower_id = selectedRequest.profiles.id
+        updateData.current_borrower_id = selectedRequest.users.id
       }
 
       const { error: itemError } = await supabase
@@ -152,7 +153,7 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
       setSelectedRequest(null)
       setSelectedDate(undefined)
       setSelectedTime("17:00")
-      router.refresh()
+      await onUpdate()
     } catch (error) {
       console.error("Error approving request:", error)
     } finally {
@@ -167,7 +168,7 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
 
       if (error) throw error
 
-      router.refresh()
+      await onUpdate()
     } catch (error) {
       console.error("Error rejecting request:", error)
     } finally {
@@ -220,7 +221,7 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
                   <div className="space-y-1 text-sm text-muted-foreground">
                     <p className="flex items-center gap-1">
                       <User className="h-3 w-3" />
-                      {request.profiles.full_name || request.profiles.email}
+                      {request.users.full_name || request.users.email}
                     </p>
                     <p className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
@@ -310,7 +311,7 @@ export function PendingRequestsTab({ requests, staffId }: PendingRequestsTabProp
                   <br />
                   <span className="font-medium">
                     Approving {selectedRequest.requested_amount} unit(s) of "{selectedRequest.items.name}" 
-                    for {selectedRequest.profiles.full_name || selectedRequest.profiles.email}
+                    for {selectedRequest.users.full_name || selectedRequest.users.email}
                   </span>
                 </>
               )}
