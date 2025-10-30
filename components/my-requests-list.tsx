@@ -104,28 +104,62 @@ export function MyRequestsList({ requests, onRequestUpdate }: MyRequestsListProp
 
   const handleCancelRequest = async (requestId: string, itemName: string) => {
     setIsLoading(requestId)
+    
     try {
-      const { error } = await supabase
-        .from("borrow_requests")
-        .update({ status: "cancelled" })
-        .eq("id", requestId)
-
-      if (error) throw error
-
-      toast({
-        title: "Request Cancelled",
-        description: `Your request for "${itemName}" has been cancelled successfully.`,
-      })
-
-      // Call the parent component's refresh function
-      if (onRequestUpdate) {
-        onRequestUpdate()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError || !user) {
+        throw new Error("Authentication required")
       }
+
+      // Try RPC function first
+      const { error: rpcError, data: rpcData } = await supabase.rpc('cancel_user_request', {
+        request_id: requestId
+      })
+      
+      if (!rpcError && rpcData?.success) {
+        toast({
+          title: "Request Cancelled",
+          description: `Your request for "${itemName}" has been cancelled successfully.`,
+        })
+        
+        if (onRequestUpdate) {
+          await onRequestUpdate()
+        }
+        return
+      }
+
+      // Fallback to direct update
+      const { error: directUpdateError } = await supabase
+        .from("borrow_requests")
+        .update({ 
+          status: "cancelled",
+          cancelled_at: new Date().toISOString()
+        })
+        .eq("id", requestId)
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+
+      if (!directUpdateError) {
+        toast({
+          title: "Request Cancelled",
+          description: `Your request for "${itemName}" has been cancelled successfully.`,
+        })
+        
+        if (onRequestUpdate) {
+          await onRequestUpdate()
+        }
+        return
+      }
+
+      throw new Error(directUpdateError?.message || 'Failed to cancel request')
+
     } catch (error) {
-      console.error("Error cancelling request:", error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to cancel request'
+      
       toast({
         title: "Error",
-        description: "Failed to cancel the request. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {

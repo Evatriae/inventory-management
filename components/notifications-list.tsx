@@ -13,7 +13,7 @@ interface Notification {
   id: string
   title: string
   message: string
-  type: 'item_available' | 'return_overdue' | 'item_approved' | 'item_rejected'
+  type: 'item_available' | 'return_overdue' | 'item_approved' | 'item_rejected' | 'cancellation_request'
   is_read: boolean
   related_item_id: string | null
   related_request_id: string | null
