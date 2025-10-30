@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Calendar, User, AlertCircle } from "lucide-react"
 import Image from "next/image"
+import { useToast } from "@/hooks/use-toast"
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const { toast } = useToast()
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -87,7 +89,11 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
 
       if (requestError) {
         console.error("Error updating request:", requestError)
-        alert(`Error updating request: ${requestError.message}`)
+        toast({
+          title: "Error",
+          description: `Error updating request: ${requestError.message}`,
+          variant: "destructive",
+        })
         return
       }
 
@@ -112,17 +118,28 @@ export function BorrowedItemsTab({ borrowedItems }: BorrowedItemsTabProps) {
 
       if (itemError) {
         console.error("Error updating item:", itemError)
-        alert(`Error updating item: ${itemError.message}`)
+        toast({
+          title: "Error",
+          description: `Error updating item: ${itemError.message}`,
+          variant: "destructive",
+        })
         return
       }
 
-      alert(`Successfully processed return for "${selectedItem.items.name}"`)
+      toast({
+        title: "Success",
+        description: `Successfully processed return for "${selectedItem.items.name}"`,
+      })
       setIsReturnDialogOpen(false)
       setSelectedItem(null)
       router.refresh()
     } catch (error) {
       console.error("Error processing return:", error)
-      alert(`Unexpected error processing return: ${error}`)
+      toast({
+        title: "Error",
+        description: `Unexpected error processing return: ${error}`,
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }

@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Plus, Pencil, Trash2, CheckCircle2, XCircle, Clock, Users } from "lucide-react"
 import Image from "next/image"
+import { useToast } from "@/hooks/use-toast"
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,7 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const { toast } = useToast()
 
   // Fetch unique categories from existing items
   useEffect(() => {
@@ -140,7 +142,11 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
 
   const handleAddItem = async () => {
     if (!formData.name || !formData.category || !formData.description || (!formData.image_url && !imageFile)) {
-      alert("Please fill in all fields and provide an image")
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all fields and provide an image",
+        variant: "destructive",
+      })
       return
     }
     
@@ -152,7 +158,11 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
       if (imageFile) {
         const uploadedUrl = await uploadImage(imageFile)
         if (!uploadedUrl) {
-          alert("Failed to upload image")
+          toast({
+            title: "Upload Failed",
+            description: "Failed to upload image",
+            variant: "destructive",
+          })
           return
         }
         imageUrl = uploadedUrl
@@ -198,7 +208,11 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
       if (imageFile) {
         const uploadedUrl = await uploadImage(imageFile)
         if (!uploadedUrl) {
-          alert("Failed to upload image")
+          toast({
+            title: "Upload Failed",
+            description: "Failed to upload image",
+            variant: "destructive",
+          })
           return
         }
         imageUrl = uploadedUrl
@@ -271,19 +285,25 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
       const result = data?.[0]
       if (result) {
         const { converted_count, notified_count } = result
-        alert(
-          `Processed reservations for "${itemName}":\n` +
-          `• ${converted_count} reservations converted to approval requests\n` +
-          `• ${notified_count} users notified about queue position`
-        )
+        toast({
+          title: "Reservations Processed",
+          description: `Processed reservations for "${itemName}": ${converted_count} reservations converted to approval requests, ${notified_count} users notified about queue position`,
+        })
       } else {
-        alert(`No pending reservations found for "${itemName}"`)
+        toast({
+          title: "No Reservations",
+          description: `No pending reservations found for "${itemName}"`,
+        })
       }
 
       router.refresh()
     } catch (error) {
       console.error("Error processing reservations:", error)
-      alert("Failed to process reservations")
+      toast({
+        title: "Error",
+        description: "Failed to process reservations",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
