@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { Plus, Pencil, Trash2, CheckCircle2, XCircle, Clock } from "lucide-react"
@@ -41,6 +42,10 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<Item | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [categories, setCategories] = useState<string[]>([])
+  const [isCustomCategory, setIsCustomCategory] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -51,6 +56,28 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  // Fetch unique categories from existing items
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('items')
+          .select('category')
+          .not('category', 'is', null)
+
+        if (error) throw error
+
+        // Extract unique categories
+        const uniqueCategories = [...new Set(data.map(item => item.category).filter(Boolean))]
+        setCategories(uniqueCategories.sort())
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+      }
+    }
+
+    fetchCategories()
+  }, [supabase])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -80,14 +107,62 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
     }
   }
 
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      setUploading(true)
+      
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const filePath = `items/${fileName}`
+      
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('item-images')
+        .upload(filePath, file)
+      
+      if (error) throw error
+      
+      // Get public URL
+      const { data: publicData } = supabase.storage
+        .from('item-images')
+        .getPublicUrl(filePath)
+      
+      return publicData.publicUrl
+      
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      return null
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleAddItem = async () => {
+    if (!formData.name || !formData.category || !formData.description || (!formData.image_url && !imageFile)) {
+      alert("Please fill in all fields and provide an image")
+      return
+    }
+    
     setIsLoading(true)
     try {
+      let imageUrl = formData.image_url
+      
+      // If file is selected, upload it
+      if (imageFile) {
+        const uploadedUrl = await uploadImage(imageFile)
+        if (!uploadedUrl) {
+          alert("Failed to upload image")
+          return
+        }
+        imageUrl = uploadedUrl
+      }
+      
       const { error } = await supabase.from("items").insert({
         name: formData.name,
         description: formData.description || null,
         category: formData.category || null,
-        image_url: formData.image_url || null,
+        image_url: imageUrl || null,
         amount: formData.amount,
         available_amount: formData.amount,
         status: "available",
@@ -95,8 +170,15 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
 
       if (error) throw error
 
+      // If a new category was created, refresh the categories list
+      if (isCustomCategory && formData.category && !categories.includes(formData.category)) {
+        setCategories(prev => [...prev, formData.category].sort())
+      }
+
       setIsAddDialogOpen(false)
       setFormData({ name: "", description: "", category: "", image_url: "", amount: 1 })
+      setImageFile(null)
+      setIsCustomCategory(false)
       router.refresh()
     } catch (error) {
       console.error("Error adding item:", error)
@@ -110,6 +192,18 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
 
     setIsLoading(true)
     try {
+      let imageUrl = formData.image_url
+      
+      // If file is selected, upload it
+      if (imageFile) {
+        const uploadedUrl = await uploadImage(imageFile)
+        if (!uploadedUrl) {
+          alert("Failed to upload image")
+          return
+        }
+        imageUrl = uploadedUrl
+      }
+      
       // Calculate the new available_amount based on the amount change
       const amountDifference = formData.amount - selectedItem.amount
       const newAvailableAmount = selectedItem.available_amount + amountDifference
@@ -120,7 +214,7 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
           name: formData.name,
           description: formData.description || null,
           category: formData.category || null,
-          image_url: formData.image_url || null,
+          image_url: imageUrl || null,
           amount: formData.amount,
           available_amount: Math.max(0, newAvailableAmount), // Ensure it doesn't go negative
         })
@@ -128,9 +222,16 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
 
       if (error) throw error
 
+      // If a new category was created, refresh the categories list
+      if (isCustomCategory && formData.category && !categories.includes(formData.category)) {
+        setCategories(prev => [...prev, formData.category].sort())
+      }
+
       setIsEditDialogOpen(false)
       setSelectedItem(null)
       setFormData({ name: "", description: "", category: "", image_url: "", amount: 1 })
+      setImageFile(null)
+      setIsCustomCategory(false)
       router.refresh()
     } catch (error) {
       console.error("Error updating item:", error)
@@ -148,6 +249,8 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
       image_url: item.image_url || "",
       amount: item.amount,
     })
+    // Check if the item's category is in the existing categories list
+    setIsCustomCategory(item.category ? !categories.includes(item.category) : false)
     setIsEditDialogOpen(true)
   }
 
@@ -261,11 +364,49 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              />
+              <div className="space-y-3">
+                {/* Category Selection */}
+                <div>
+                  <Select
+                    value={isCustomCategory ? "custom" : formData.category}
+                    onValueChange={(value) => {
+                      if (value === "custom") {
+                        setIsCustomCategory(true)
+                        setFormData({ ...formData, category: "" })
+                      } else {
+                        setIsCustomCategory(false)
+                        setFormData({ ...formData, category: value })
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category or create new" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="custom">+ Create New Category</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Custom Category Input */}
+                {isCustomCategory && (
+                  <div>
+                    <Label htmlFor="custom-category" className="text-sm text-gray-600">New Category Name</Label>
+                    <Input
+                      id="custom-category"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      placeholder="Enter new category name"
+                      className="mt-1"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="amount">Total Amount *</Label>
@@ -288,13 +429,78 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="image_url">Image URL</Label>
-              <Input
-                id="image_url"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                placeholder="/placeholder.svg?height=300&width=300"
-              />
+              <Label>Image</Label>
+              <div className="space-y-3">
+                {/* File Upload Section */}
+                <div>
+                  <Label htmlFor="image-file" className="text-sm text-gray-600">Upload Image File</Label>
+                  <Input
+                    id="image-file"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setImageFile(file)
+                        setFormData({ ...formData, image_url: "" }) // Clear URL when file is selected
+                      }
+                    }}
+                    className="mt-1"
+                    disabled={uploading}
+                  />
+                  {uploading && <p className="text-sm text-blue-600 mt-1">Uploading image...</p>}
+                </div>
+                
+                {/* OR Separator */}
+                <div className="flex items-center space-x-2">
+                  <div className="flex-1 border-t"></div>
+                  <span className="text-sm text-gray-500">OR</span>
+                  <div className="flex-1 border-t"></div>
+                </div>
+                
+                {/* URL Input Section */}
+                <div>
+                  <Label htmlFor="image_url" className="text-sm text-gray-600">Image URL</Label>
+                  <Input
+                    id="image_url"
+                    value={formData.image_url}
+                    onChange={(e) => {
+                      setFormData({ ...formData, image_url: e.target.value })
+                      if (e.target.value) {
+                        setImageFile(null) // Clear file when URL is entered
+                      }
+                    }}
+                    placeholder="https://example.com/image.jpg"
+                    className="mt-1"
+                    disabled={uploading}
+                  />
+                </div>
+                
+                {/* Image Preview */}
+                {(imageFile || formData.image_url) && (
+                  <div className="mt-3">
+                    <Label className="text-sm text-gray-600">Preview</Label>
+                    <div className="mt-1 border rounded-lg p-2 bg-gray-50">
+                      {imageFile ? (
+                        <img
+                          src={URL.createObjectURL(imageFile)}
+                          alt="Preview"
+                          className="w-20 h-20 object-cover rounded"
+                        />
+                      ) : formData.image_url ? (
+                        <img
+                          src={formData.image_url}
+                          alt="Preview"
+                          className="w-20 h-20 object-cover rounded"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder.svg?height=80&width=80"
+                          }}
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -326,11 +532,49 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-category">Category</Label>
-              <Input
-                id="edit-category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              />
+              <div className="space-y-3">
+                {/* Category Selection */}
+                <div>
+                  <Select
+                    value={isCustomCategory ? "custom" : formData.category}
+                    onValueChange={(value) => {
+                      if (value === "custom") {
+                        setIsCustomCategory(true)
+                        setFormData({ ...formData, category: "" })
+                      } else {
+                        setIsCustomCategory(false)
+                        setFormData({ ...formData, category: value })
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category or create new" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="custom">+ Create New Category</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Custom Category Input */}
+                {isCustomCategory && (
+                  <div>
+                    <Label htmlFor="edit-custom-category" className="text-sm text-gray-600">New Category Name</Label>
+                    <Input
+                      id="edit-custom-category"
+                      value={formData.category}
+                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                      placeholder="Enter new category name"
+                      className="mt-1"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-amount">Total Amount *</Label>
@@ -358,13 +602,78 @@ export function ItemsManagementTab({ items }: ItemsManagementTabProps) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit-image_url">Image URL</Label>
-              <Input
-                id="edit-image_url"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                placeholder="/placeholder.svg?height=300&width=300"
-              />
+              <Label>Image</Label>
+              <div className="space-y-3">
+                {/* File Upload Section */}
+                <div>
+                  <Label htmlFor="edit-image-file" className="text-sm text-gray-600">Upload Image File</Label>
+                  <Input
+                    id="edit-image-file"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        setImageFile(file)
+                        setFormData({ ...formData, image_url: "" }) // Clear URL when file is selected
+                      }
+                    }}
+                    className="mt-1"
+                    disabled={uploading}
+                  />
+                  {uploading && <p className="text-sm text-blue-600 mt-1">Uploading image...</p>}
+                </div>
+                
+                {/* OR Separator */}
+                <div className="flex items-center space-x-2">
+                  <div className="flex-1 border-t"></div>
+                  <span className="text-sm text-gray-500">OR</span>
+                  <div className="flex-1 border-t"></div>
+                </div>
+                
+                {/* URL Input Section */}
+                <div>
+                  <Label htmlFor="edit-image_url" className="text-sm text-gray-600">Image URL</Label>
+                  <Input
+                    id="edit-image_url"
+                    value={formData.image_url}
+                    onChange={(e) => {
+                      setFormData({ ...formData, image_url: e.target.value })
+                      if (e.target.value) {
+                        setImageFile(null) // Clear file when URL is entered
+                      }
+                    }}
+                    placeholder="https://example.com/image.jpg"
+                    className="mt-1"
+                    disabled={uploading}
+                  />
+                </div>
+                
+                {/* Image Preview */}
+                {(imageFile || formData.image_url) && (
+                  <div className="mt-3">
+                    <Label className="text-sm text-gray-600">Preview</Label>
+                    <div className="mt-1 border rounded-lg p-2 bg-gray-50">
+                      {imageFile ? (
+                        <img
+                          src={URL.createObjectURL(imageFile)}
+                          alt="Preview"
+                          className="w-20 h-20 object-cover rounded"
+                        />
+                      ) : formData.image_url ? (
+                        <img
+                          src={formData.image_url}
+                          alt="Preview"
+                          className="w-20 h-20 object-cover rounded"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder.svg?height=80&width=80"
+                          }}
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>
