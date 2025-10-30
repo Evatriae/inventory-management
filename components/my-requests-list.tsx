@@ -185,8 +185,8 @@ export function MyRequestsList({ requests, onRequestUpdate }: MyRequestsListProp
       {requests.map((request) => (
         <Card key={request.id}>
           <CardHeader className="pb-3">
-            <div className="flex items-start gap-4">
-              <div className="relative h-20 w-20 rounded-md overflow-hidden bg-slate-100 flex-shrink-0">
+            <div className="flex flex-col sm:flex-row items-start gap-4">
+              <div className="relative h-20 w-20 rounded-md overflow-hidden bg-slate-100 flex-shrink-0 mx-auto sm:mx-0">
                 <Image
                   src={request.items.image_url || "/placeholder.svg?height=80&width=80"}
                   alt={request.items.name}
@@ -194,24 +194,25 @@ export function MyRequestsList({ requests, onRequestUpdate }: MyRequestsListProp
                   className="object-cover"
                 />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <h3 className="font-semibold text-lg">{request.items.name}</h3>
-                  <div className="flex items-center gap-2">
-                    {getStatusBadge(request.status)}
-                    {canCancelRequest(request) && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            disabled={isLoading === request.id}
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Cancel
-                          </Button>
-                        </AlertDialogTrigger>
+              <div className="flex-1 min-w-0 w-full sm:w-auto">
+                <div className="flex flex-col gap-2 mb-2 sm:mb-1">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                    <h3 className="font-semibold text-lg text-center sm:text-left">{request.items.name}</h3>
+                    <div className="flex items-center justify-center sm:justify-end gap-2 flex-shrink-0">
+                      {getStatusBadge(request.status)}
+                      {canCancelRequest(request) && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 whitespace-nowrap min-h-[36px] touch-manipulation"
+                              disabled={isLoading === request.id}
+                            >
+                              <Trash2 className="h-3 w-3 sm:mr-1" />
+                              <span className="hidden sm:inline">Cancel</span>
+                            </Button>
+                          </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Cancel Request</AlertDialogTitle>
@@ -240,10 +241,13 @@ export function MyRequestsList({ requests, onRequestUpdate }: MyRequestsListProp
                         </AlertDialogContent>
                       </AlertDialog>
                     )}
+                    </div>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground capitalize">{request.request_type} Request</p>
-                <p className="text-sm font-medium">Amount: {request.requested_amount}</p>
+                <div className="text-center sm:text-left space-y-1">
+                  <p className="text-sm text-muted-foreground capitalize">{request.request_type} Request</p>
+                  <p className="text-sm font-medium">Amount: {request.requested_amount}</p>
+                </div>
               </div>
             </div>
           </CardHeader>
