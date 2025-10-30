@@ -408,7 +408,7 @@ export function ItemsManagementTab({ items, onUpdate }: ItemsManagementTabProps)
       </div>
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] w-full sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Item</DialogTitle>
             <DialogDescription>Add a new item to the inventory</DialogDescription>
@@ -564,11 +564,11 @@ export function ItemsManagementTab({ items, onUpdate }: ItemsManagementTabProps)
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isLoading}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isLoading} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleAddItem} disabled={isLoading || !formData.name}>
+            <Button onClick={handleAddItem} disabled={isLoading || !formData.name} className="w-full sm:w-auto">
               {isLoading ? "Adding..." : "Add Item"}
             </Button>
           </DialogFooter>
@@ -576,7 +576,7 @@ export function ItemsManagementTab({ items, onUpdate }: ItemsManagementTabProps)
       </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] w-full sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Item</DialogTitle>
             <DialogDescription>Update item information</DialogDescription>
@@ -737,11 +737,11 @@ export function ItemsManagementTab({ items, onUpdate }: ItemsManagementTabProps)
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isLoading}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} disabled={isLoading} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleEditItem} disabled={isLoading || !formData.name}>
+            <Button onClick={handleEditItem} disabled={isLoading || !formData.name} className="w-full sm:w-auto">
               {isLoading ? "Updating..." : "Update Item"}
             </Button>
           </DialogFooter>
@@ -749,21 +749,21 @@ export function ItemsManagementTab({ items, onUpdate }: ItemsManagementTabProps)
       </Dialog>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] w-full sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Delete Item</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete "{selectedItem?.name}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isLoading}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} disabled={isLoading} className="w-full sm:w-auto">
               Cancel
             </Button>
             <Button 
               onClick={handleDeleteItem} 
               disabled={isLoading}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
             >
               {isLoading ? "Deleting..." : "Delete Item"}
             </Button>
